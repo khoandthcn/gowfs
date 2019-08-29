@@ -95,12 +95,10 @@ func (shell FsShell) Chmod(hdfsPaths []string, perm os.FileMode) (bool, error) {
 // Tests the existence of a remote HDFS file/directory.
 func (shell FsShell) Exists(hdfsPath string) (bool, error) {
 	_, err := shell.FileSystem.GetFileStatus(Path{Name: hdfsPath})
-	if err != nil {
-		if remoteErr, ok := err.(RemoteException); ok && remoteErr.JavaClassName == "java.io.FileNotFoundException" {
-			return false, nil
-		} else {
-			return false, err /* a different err */
-		}
+	if remoteErr, ok := err.(RemoteException); ok && remoteErr.JavaClassName == "java.io.FileNotFoundException" {
+		return false, nil
+	} else {
+		return false, err /* a different err */
 	}
 	return true, nil
 }
@@ -126,8 +124,7 @@ func (shell FsShell) Put(localFile string, hdfsPath string, overwrite bool) (boo
 		134217728,
 		3,
 		0644,
-		4096,
-		"")
+		4096)
 
 	if err != nil {
 		return false, err
@@ -195,15 +192,15 @@ func (shell FsShell) Get(hdfsPath, localFile string) (bool, error) {
 func (shell FsShell) MoveFromLocal(localFile, hdfsPath string, overwrite bool) (bool, error) {
 	ok, err := shell.Put(localFile, hdfsPath, overwrite)
 	// validate operation, then remove local
-	if ok && err == nil {
-		hdfStat, err := shell.FileSystem.GetFileStatus(Path{Name: path.Join(hdfsPath, path.Base(localFile))})
+	if ok && err != nil {
+		hdfStat, err := shell.FileSystem.GetFileStatus(Path{Name: hdfsPath})
 		if err != nil {
-			return false, fmt.Errorf("Unable to verify remote file. err is %v", err.Error())
+			return false, fmt.Errorf("Unable to verify remote file. ", err.Error())
 		}
 
 		file, err := os.Open(localFile)
 		if err != nil {
-			return false, fmt.Errorf("Unable to validate operation. err is %v", err.Error())
+			return false, fmt.Errorf("Unable to validate operation. ", err.Error())
 		}
 		if hdfStat.Length != µ(file.Stat())[0].(os.FileInfo).Size() {
 			return false, fmt.Errorf("Remote and local file size mismatch.")

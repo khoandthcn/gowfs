@@ -7,6 +7,7 @@ import "strconv"
 import "strings"
 import "net/url"
 import "net/http"
+import "crypto/tls"
 
 // Creates a new file and stores its content in HDFS.
 // See HDFS FileSystem.create()
@@ -19,8 +20,7 @@ func (fs *FileSystem) Create(
 	blocksize uint64,
 	replication uint16,
 	permission os.FileMode,
-	buffersize uint,
-	contenttype string) (bool, error) {
+	buffersize uint) (bool, error) {
 
 	params := map[string]string{"op": OP_CREATE}
 	params["overwrite"] = strconv.FormatBool(overwrite)
@@ -55,8 +55,12 @@ func (fs *FileSystem) Create(
 	}
 
 	// take over default transport to avoid redirect
+	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 	req, _ := http.NewRequest("PUT", u.String(), nil)
-	rsp, err := fs.transport.RoundTrip(req)
+	if fs.Config.BasicAuth {
+		req.Header.Set("Authorization", fs.Config.GetBasicAuthString())
+	}
+	rsp, err := tr.RoundTrip(req)
 	if err != nil {
 		return false, err
 	}
@@ -69,9 +73,8 @@ func (fs *FileSystem) Create(
 	}
 
 	req, _ = http.NewRequest("PUT", u.String(), data)
-	// set content type
-	if contenttype != "" {
-		req.Header.Set("Content-Type", contenttype)
+	if fs.Config.BasicAuth {
+		req.Header.Set("Authorization", fs.Config.GetBasicAuthString())
 	}
 	rsp, err = fs.client.Do(req)
 	if err != nil {
@@ -119,6 +122,9 @@ func (fs *FileSystem) Open(p Path, offset, length int64, buffSize int) (io.ReadC
 	}
 
 	req, _ := http.NewRequest("GET", u.String(), nil)
+	if fs.Config.BasicAuth {
+		req.Header.Set("Authorization", fs.Config.GetBasicAuthString())
+	}
 	rsp, err := fs.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -131,8 +137,6 @@ func (fs *FileSystem) Open(p Path, offset, length int64, buffSize int) (io.ReadC
 		if err != nil {
 			return nil, err
 		}
-
-		return nil, fmt.Errorf("Open(%s) - File not opened.  Server returned status %v", p.Name, rsp.StatusCode)
 	}
 
 	return rsp.Body, nil
@@ -157,8 +161,12 @@ func (fs *FileSystem) Append(data io.Reader, p Path, buffersize int) (bool, erro
 	}
 
 	// take over default transport to avoid redirect
+	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 	req, _ := http.NewRequest("POST", u.String(), nil)
-	rsp, err := fs.transport.RoundTrip(req)
+	if fs.Config.BasicAuth {
+		req.Header.Set("Authorization", fs.Config.GetBasicAuthString())
+	}
+	rsp, err := tr.RoundTrip(req)
 	if err != nil {
 		return false, err
 	}
@@ -171,6 +179,9 @@ func (fs *FileSystem) Append(data io.Reader, p Path, buffersize int) (bool, erro
 	}
 
 	req, _ = http.NewRequest("POST", u.String(), data)
+	if fs.Config.BasicAuth {
+		req.Header.Set("Authorization", fs.Config.GetBasicAuthString())
+	}
 	rsp, err = fs.client.Do(req)
 	if err != nil {
 		return false, err
@@ -203,6 +214,9 @@ func (fs *FileSystem) Concat(target Path, sources []string) (bool, error) {
 	}
 
 	req, _ := http.NewRequest("POST", u.String(), nil)
+	if fs.Config.BasicAuth {
+		req.Header.Set("Authorization", fs.Config.GetBasicAuthString())
+	}
 	rsp, err := fs.client.Do(req)
 	if err != nil {
 		return false, err

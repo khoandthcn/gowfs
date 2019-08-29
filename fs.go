@@ -10,6 +10,10 @@ import "net"
 import "net/http"
 import "net/url"
 import "io/ioutil"
+import "crypto/tls"
+
+// import "encoding/base64"
+// import "fmt"
 
 const (
 	OP_OPEN                  = "OPEN"
@@ -41,29 +45,27 @@ func µ(v ...interface{}) []interface{} {
 
 // This type maps fields and functions to HDFS's FileSystem class.
 type FileSystem struct {
-	Config    Configuration
-	client    http.Client
-	transport *http.Transport
+	Config Configuration
+	client http.Client
 }
 
 func NewFileSystem(conf Configuration) (*FileSystem, error) {
 	fs := &FileSystem{
 		Config: conf,
 	}
-	fs.transport = &http.Transport{
-		Dial: func(netw, addr string) (net.Conn, error) {
-			c, err := net.DialTimeout(netw, addr, conf.ConnectionTimeout)
-			if err != nil {
-				return nil, err
-			}
 
-			return c, nil
-		},
-		MaxIdleConnsPerHost:   conf.MaxIdleConnsPerHost,
-		ResponseHeaderTimeout: conf.ResponseHeaderTimeout,
-	}
 	fs.client = http.Client{
-		Transport: fs.transport,
+		Transport: &http.Transport{
+			Dial: func(netw, addr string) (net.Conn, error) {
+				c, err := net.DialTimeout(netw, addr, conf.ConnectionTimeout)
+				if err != nil {
+					return nil, err
+				}
+
+				return c, nil
+			},
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
 	}
 	return fs, nil
 }
@@ -125,8 +127,11 @@ func responseToHdfsData(rsp *http.Response) (HdfsJsonData, error) {
 	return makeHdfsData(body)
 }
 
-func requestHdfsData(client http.Client, req http.Request) (HdfsJsonData, error) {
-	rsp, err := client.Do(&req)
+func requestHdfsData(fs *FileSystem, req http.Request) (HdfsJsonData, error) {
+	if fs.Config.BasicAuth {
+		req.Header.Set("Authorization", fs.Config.GetBasicAuthString())
+	}
+	rsp, err := fs.client.Do(&req)
 	if err != nil {
 		return HdfsJsonData{}, err
 	}

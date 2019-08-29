@@ -1,10 +1,23 @@
 package gowfs
 
-import "fmt"
-import "errors"
-import "time"
-import "net/url"
-import "os/user"
+import (
+	"encoding/base64"
+	"errors"
+	"fmt"
+	"net/url"
+	"os"
+	"os/user"
+	"time"
+
+	"github.com/sirupsen/logrus"
+)
+
+var log = logrus.WithField("module", "gowfs")
+
+func init() {
+	logrus.SetOutput(os.Stdout)
+	logrus.SetFormatter(&logrus.TextFormatter{})
+}
 
 const WebHdfsVer string = "/webhdfs/v1"
 
@@ -12,11 +25,13 @@ type Configuration struct {
 	Addr                  string // host:port
 	BasePath              string // initial base path to be appended
 	User                  string // user.name to use to connect
+	Passwd                string // user.passwd for simple authen
 	ConnectionTimeout     time.Duration
 	DisableKeepAlives     bool
 	DisableCompression    bool
 	ResponseHeaderTimeout time.Duration
-	MaxIdleConnsPerHost   int
+	UseHTTPS              bool
+	BasicAuth             bool
 }
 
 func NewConfiguration() *Configuration {
@@ -25,6 +40,8 @@ func NewConfiguration() *Configuration {
 		DisableKeepAlives:     false,
 		DisableCompression:    true,
 		ResponseHeaderTimeout: time.Second * 17,
+		UseHTTPS:              true,
+		BasicAuth:             true,
 	}
 }
 
@@ -33,7 +50,12 @@ func (conf *Configuration) GetNameNodeUrl() (*url.URL, error) {
 		return nil, errors.New("Configuration namenode address not set.")
 	}
 
-	var urlStr string = fmt.Sprintf("http://%s%s%s", conf.Addr, WebHdfsVer, conf.BasePath)
+	scheme := "http"
+	if conf.UseHTTPS {
+		scheme = "https"
+	}
+
+	urlStr := fmt.Sprintf("%s://%s%s%s", scheme, conf.Addr, WebHdfsVer, conf.BasePath)
 
 	if &conf.User == nil || len(conf.User) == 0 {
 		u, _ := user.Current()
@@ -48,4 +70,8 @@ func (conf *Configuration) GetNameNodeUrl() (*url.URL, error) {
 	}
 
 	return u, nil
+}
+
+func (conf *Configuration) GetBasicAuthString() string {
+	return fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", conf.User, conf.Passwd))))
 }

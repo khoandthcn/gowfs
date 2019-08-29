@@ -12,7 +12,7 @@ func (fs *FileSystem) GetDelegationToken(renewer string) (Token, error) {
 	}
 
 	req, _ := http.NewRequest("GET", u.String(), nil)
-	hdfsData, err := requestHdfsData(fs.client, *req)
+	hdfsData, err := requestHdfsData(fs, *req)
 	if err != nil {
 		return Token{}, err
 	}
@@ -29,7 +29,7 @@ func (fs *FileSystem) GetDelegationTokens(renewer string) ([]Token, error) {
 	}
 
 	req, _ := http.NewRequest("GET", u.String(), nil)
-	hdfsData, err := requestHdfsData(fs.client, *req)
+	hdfsData, err := requestHdfsData(fs, *req)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (fs *FileSystem) RenewDelegationToken(token string) (int64, error) {
 	}
 
 	req, _ := http.NewRequest("PUT", u.String(), nil)
-	hdfsData, err := requestHdfsData(fs.client, *req)
+	hdfsData, err := requestHdfsData(fs, *req)
 	if err != nil {
 		return -1, err
 	}
