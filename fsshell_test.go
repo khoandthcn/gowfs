@@ -7,7 +7,8 @@ import "net/url"
 import "net/http"
 import "net/http/httptest"
 import "fmt"
-import "log"
+
+// import "log"
 
 import "strings"
 

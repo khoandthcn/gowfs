@@ -19,13 +19,14 @@ func init() {
 	logrus.SetFormatter(&logrus.TextFormatter{})
 }
 
-const WebHdfsVer string = "/webhdfs/v1"
+// const WebHdfsVer string = "/webhdfs/v1"
 
 type Configuration struct {
 	Addr                  string // host:port
 	BasePath              string // initial base path to be appended
 	User                  string // user.name to use to connect
 	Passwd                string // user.passwd for simple authen
+	WebHdfsVer            string
 	ConnectionTimeout     time.Duration
 	DisableKeepAlives     bool
 	DisableCompression    bool
@@ -55,7 +56,7 @@ func (conf *Configuration) GetNameNodeUrl() (*url.URL, error) {
 		scheme = "https"
 	}
 
-	urlStr := fmt.Sprintf("%s://%s%s%s", scheme, conf.Addr, WebHdfsVer, conf.BasePath)
+	urlStr := fmt.Sprintf("%s://%s%s%s", scheme, conf.Addr, conf.WebHdfsVer, conf.BasePath)
 
 	if &conf.User == nil || len(conf.User) == 0 {
 		u, _ := user.Current()

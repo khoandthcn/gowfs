@@ -1,13 +1,14 @@
 package gowfs
 
-import "fmt"
-import "log"
-import "net/url"
-import "net/http"
-import "net/http/httptest"
-import "strconv"
-
-import "testing"
+import (
+	"fmt"
+	// "log"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strconv"
+	"testing"
+)
 
 func Test_Rename(t *testing.T) {
 	server := mockServerFor_Rename()

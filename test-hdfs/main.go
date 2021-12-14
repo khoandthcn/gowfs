@@ -1,14 +1,17 @@
 package main
 
-import "fmt"
-import "flag"
-import "log"
-import "os"
-import "path"
-import "os/user"
-import "strconv"
-import "time"
-import "vladimirvivien/gowfs"
+import (
+	"flag"
+	"fmt"
+	"log"
+	"os"
+	"os/user"
+	"path"
+	"strconv"
+	"time"
+
+	"github.com/khoandthcn/gowfs"
+)
 
 var uname string
 

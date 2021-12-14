@@ -1,7 +1,8 @@
 package gowfs
 
 import "fmt"
-import "log"
+
+// import "log"
 import "net/url"
 import "net/http"
 import "net/http/httptest"
